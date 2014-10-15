@@ -24,12 +24,13 @@
 
 %% Definitions
 -define(SERVER, ?MODULE).
+-define(CRLF, [10]).
 
 connection_handler(ClientSocket) ->
     case gen_tcp:recv(ClientSocket, 0) of
         {ok, Packet} ->
-            io:format("Packet ~w~n", [Packet]),
-            gen_tcp:send(ClientSocket, Packet);
+            Message = sessionserver:dispatch(Packet) ++ ?CRLF,
+            gen_tcp:send(ClientSocket, Message);
         {error, Reason} ->
             error(Reason)
     end,
@@ -37,15 +38,14 @@ connection_handler(ClientSocket) ->
 
 start_link() ->
     Port = 5678,
-    Options = [binary, {packet, 0}, {active, false}],
+    Options = [list, {packet, 0}, {active, false}],
     SocketOptions = {Port, Options},
     supervisor_bridge:start_link({local, ?SERVER}, ?SERVER, SocketOptions).
 
 init({Port, Options}) ->
     case gen_tcp:listen(Port, Options) of
         {ok, ListenSocket} ->
-            {ok, ServerPid} = proc_lib:start_link(?SERVER, accept_init,
-                [self(), ListenSocket], 1000),
+            {ok, ServerPid} = proc_lib:start_link(?SERVER, accept_init, [self(), ListenSocket], 1000),
             {ok, ServerPid, ListenSocket};
         OtherResult -> OtherResult
     end.
@@ -60,7 +60,7 @@ accept_init(ParentPid, ListenSocket) ->
 accept_loop(ListenSocket) ->
     case gen_tcp:accept(ListenSocket) of
         {ok, ClientSocket} ->
-            Pid = proc_lib:spawn_link(?SERVER, connection_handler, [ClientSocket]),
+            Pid = proc_lib:start_link(?SERVER, connection_handler, [ClientSocket]),
             ok = gen_tcp:controlling_process(ClientSocket, Pid),
             accept_loop(ListenSocket);
         {error, closed} ->

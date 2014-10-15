@@ -12,13 +12,14 @@
 
 -behaviour(gen_server).
 
--export([start_link/0, test/0]).
+-export([start_link/0, test/0, dispatch/1]).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
     terminate/2, code_change/3]).
 
 %% Definitions
 -define(SERVER, ?MODULE).
+-define(CRLF, [10]).
 
 
 start_link() ->
@@ -34,6 +35,9 @@ init([]) ->
 test() ->
     gen_server:call(?SERVER, test).
 
+dispatch(Packet) ->
+    gen_server:call(?SERVER, {packet, Packet}).
+
 %% ===================================================================
 %% Server callbacks
 %% ===================================================================
@@ -41,6 +45,14 @@ test() ->
 handle_call(test, _From, State) ->
     io:format("Got test message!~n", []),
     {reply, ok, State};
+
+handle_call({packet, "PING" ++ ?CRLF}, _From, State) ->
+    Message = "PONG",
+    {reply, Message, State};
+
+handle_call({packet, _Packet}, _From, State) ->
+    Message = "UNRECOGNIZED COMMAND",
+    {reply, Message, State};
 
 handle_call(_Request, _From, State) ->
     Reply = ok,
