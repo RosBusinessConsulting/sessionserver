@@ -17,6 +17,11 @@
 %% Supervisor callbacks
 -export([init/1]).
 
+%% Definitions
+-define(SERVER, ?MODULE).
+-define(MAX_RESTART, 5).
+-define(MAX_TIME, 60).
+
 %% Helper macro for declaring children of supervisor
 -define(CHILD(I, Type), {I, {I, start_link, []}, permanent, 5000, Type, [I]}).
 
@@ -25,12 +30,17 @@
 %% ===================================================================
 
 start_link() ->
-    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
+    supervisor:start_link({local, ?SERVER}, ?SERVER, []).
 
 %% ===================================================================
 %% Supervisor callbacks
 %% ===================================================================
 
 init([]) ->
-    {ok, { {one_for_one, 5, 10}, [?CHILD(sessionserver, worker)]} }.
+    Flags = {one_for_one, ?MAX_RESTART, ?MAX_TIME},
+    Spec = [
+        ?CHILD(sessionserver, worker),
+        ?CHILD(sessionserver_bridge, supervisor)
+    ],
+    {ok, {Flags, Spec}}.
 
