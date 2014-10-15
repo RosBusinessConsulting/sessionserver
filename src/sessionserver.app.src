@@ -1,0 +1,12 @@
+{application, sessionserver,
+ [
+  {description, "Session server"},
+  {vsn, "0.1.0"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, { sessionserver_app, []}},
+  {env, []}
+ ]}.
