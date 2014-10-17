@@ -20,7 +20,7 @@
 % internal proc_lib:start_link
 -export([accept_loop/1]).
 
--export([connection_handler/1, create_acceptor/1]).
+-export([connection_handler/1]).
 
 %% Definitions
 -define(SERVER, ?MODULE).
@@ -47,13 +47,10 @@ init([ListenSocket]) ->
 terminate(_Reason, ListenSocket) ->
     gen_tcp:close(ListenSocket).
 
-create_acceptor(ListenSocket) ->
-    sessionserver_socket_sup:create_acceptor(ListenSocket).
-
 accept_loop(ListenSocket) ->
     case gen_tcp:accept(ListenSocket) of
         {ok, ClientSocket} ->
-            proc_lib:start_link(?SERVER, create_acceptor, [ListenSocket]),
+            proc_lib:start_link(sessionserver_socket_sup, create_acceptor, [self(), ListenSocket]),
             io:format("Client socket ~p ~w~n", [self(), ClientSocket]),
             Pid = proc_lib:start_link(?SERVER, connection_handler, [ClientSocket]),
             gen_tcp:controlling_process(ClientSocket, Pid),

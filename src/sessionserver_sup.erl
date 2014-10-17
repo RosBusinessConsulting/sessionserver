@@ -40,7 +40,8 @@ init([]) ->
     Flags = {one_for_one, ?MAX_RESTART, ?MAX_TIME},
     Spec = [
         ?CHILD(sessionserver, worker),
-        ?CHILD(sessionserver_socket_sup, supervisor)
+        ?CHILD(sessionserver_socket_sup, supervisor),
+        ?CHILD(sessionserver_socket, worker)
     ],
     {ok, {Flags, Spec}}.
 

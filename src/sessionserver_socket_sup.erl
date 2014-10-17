@@ -12,7 +12,7 @@
 -behaviour(supervisor).
 
 %% API
--export([start_link/0, start_socket/0, create_acceptor/1]).
+-export([start_link/0, create_acceptor/2]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -32,6 +32,11 @@
 start_link() ->
     supervisor:start_link({local, ?SERVER}, ?SERVER, []).
 
+create_acceptor(ParentPid, ListenSocket) ->
+    proc_lib:init_ack(ParentPid, {ok, self()}),
+    io:format("Create acceptor ~p ~w~n", [self(), ListenSocket]),
+    supervisor:start_child(?SERVER, [ListenSocket]).
+
 %% ===================================================================
 %% Supervisor callbacks
 %% ===================================================================
@@ -42,17 +47,3 @@ init([]) ->
         ?CHILD(sessionserver_socket_bridge, worker, [])
     ],
     {ok, {Flags, Spec}}.
-
-create_acceptor(ListenSocket) ->
-    io:format("Create acceptor ~p ~w~n", [self(), ListenSocket]),
-    supervisor:start_child(?SERVER, [ListenSocket]).
-
-start_socket() ->
-    Port = 5678,
-    Options = [list, {packet, line}, {active, false}, {reuseaddr, true}],
-    case gen_tcp:listen(Port, Options) of
-        {ok, ListenSocket} ->
-            io:format("Created ListenSocket ~p ~w~n", [self(), ListenSocket]),
-            create_acceptor(ListenSocket);
-        OtherResult -> OtherResult
-    end.
