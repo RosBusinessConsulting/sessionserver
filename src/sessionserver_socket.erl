@@ -33,26 +33,26 @@ init([]) ->
 %% ===================================================================
 
 start_socket() ->
-    gen_server:cast(?SERVER, socket).
+    gen_server:call(?SERVER, socket).
 
 %% ===================================================================
 %% Server callbacks
 %% ===================================================================
 
+handle_call(socket, _From, State) ->
+    Port = 5678,
+    Options = [list, {packet, line}, {active, false}, {reuseaddr, true}],
+    Reply = case gen_tcp:listen(Port, Options) of
+        {ok, ListenSocket} ->
+            io:format("Created ListenSocket ~p ~w~n", [self(), ListenSocket]),
+            proc_lib:start_link(sessionserver_socket_sup, create_acceptor, [self(), ListenSocket]);
+        OtherResult -> OtherResult
+    end,
+    {reply, Reply, State};
+
 handle_call(_Request, _From, State) ->
     Reply = ok,
     {reply, Reply, State}.
-
-handle_cast(socket, State) ->
-    Port = 5678,
-    Options = [list, {packet, line}, {active, false}, {reuseaddr, true}],
-    case gen_tcp:listen(Port, Options) of
-        {ok, ListenSocket} ->
-            io:format("Created ListenSocket ~p ~w~n", [self(), ListenSocket]),
-            supervisor:start_child(sessionserver_socket_sup, [ListenSocket]);
-        OtherResult -> OtherResult
-    end,
-    {noreply, State};
 
 handle_cast(_Msg, State) ->
     {noreply, State}.

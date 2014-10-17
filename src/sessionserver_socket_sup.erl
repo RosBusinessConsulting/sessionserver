@@ -44,6 +44,6 @@ create_acceptor(ParentPid, ListenSocket) ->
 init([]) ->
     Flags = {simple_one_for_one, ?MAX_RESTART, ?MAX_TIME},
     Spec = [
-        ?CHILD(sessionserver_socket_bridge, worker, [])
+        ?CHILD(sessionserver_socket_server, worker, [])
     ],
     {ok, {Flags, Spec}}.
