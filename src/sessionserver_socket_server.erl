@@ -12,40 +12,38 @@
 
 -behaviour(gen_server).
 
--export([start_link/1, accept_socket/2, handle_socket/2]).
+%% API
+-export([start_link/1]).
+-export([accept_socket/2, handle_socket/2]).
 
--export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-    terminate/2, code_change/3]).
+%% Server callbacks
+-export([init/1, terminate/2, code_change/3]).
+-export([handle_call/3, handle_cast/2, handle_info/2]).
 
 %% Definitions
 -define(SERVER, ?MODULE).
 -define(CRLF, [10]).
 
-
-start_link(ListenSocket) ->
-    io:format("socket_server start_link ~w~n", [ListenSocket]),
-    gen_server:start_link(?SERVER, [ListenSocket], []).
-
-init([ListenSocket]) ->
-    io:format("init socket server~n"),
-    accept_socket(self(), ListenSocket),
-    {ok, []}.
-
 %% ===================================================================
 %% API functions
 %% ===================================================================
 
+start_link(ListenSocket) ->
+    gen_server:start_link(?SERVER, [ListenSocket], []).
+
 accept_socket(Pid, ListenSocket) ->
-    io:format("accept socket ~w~n", [ListenSocket]),
     gen_server:cast(Pid, {accept, Pid, ListenSocket}).
 
 handle_socket(Pid, ClientSocket) ->
-    io:format("handle socket ~w~n", [ClientSocket]),
     gen_server:cast(Pid, {handler, Pid, ClientSocket}).
 
 %% ===================================================================
 %% Server callbacks
 %% ===================================================================
+
+init([ListenSocket]) ->
+    accept_socket(self(), ListenSocket),
+    {ok, []}.
 
 handle_call(_Request, _From, State) ->
     Reply = ok,
@@ -58,20 +56,16 @@ handle_cast({handler, Pid, ClientSocket}, State) ->
             Message = sessionserver:dispatch(Packet) ++ ?CRLF,
             gen_tcp:send(ClientSocket, Message);
         {error, Reason} ->
+            sessionserver_socket_sup:terminate_acceptor(Pid),
             error(Reason)
     end,
     gen_server:cast(Pid, {handler, Pid, ClientSocket}),
     {noreply, State};
 
 handle_cast({accept, Pid, ListenSocket}, State) ->
-    io:format("Before acception ~w~n", [ListenSocket]),
     case gen_tcp:accept(ListenSocket) of
         {ok, ClientSocket} ->
-            io:format("Client socket accepted ~p ~w~n", [Pid, ClientSocket]),
             proc_lib:start_link(sessionserver_socket_sup, create_acceptor, [Pid, ListenSocket]),
-            io:format("New acceptor started with ListenSocket ~p ~w~n", [Pid, ListenSocket]),
-            % Pid = proc_lib:start_link(?SERVER, connection_handler, [ClientSocket]),
-            % gen_tcp:controlling_process(ClientSocket, Pid),
             handle_socket(Pid, ClientSocket),
             ok;
         {error, closed} ->

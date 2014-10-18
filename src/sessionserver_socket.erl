@@ -12,47 +12,53 @@
 
 -behaviour(gen_server).
 
--export([start_link/0, start_socket/0]).
+%% API
+-export([start_link/0]).
+-export([start_socket/0]).
 
--export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-    terminate/2, code_change/3]).
+%% Server callbacks
+-export([init/1, terminate/2, code_change/3]).
+-export([handle_call/3, handle_cast/2, handle_info/2]).
 
 %% Definitions
 -define(SERVER, ?MODULE).
 -define(CRLF, [10]).
 
-
-start_link() ->
-    gen_server:start_link({local, ?SERVER}, ?SERVER, [], []).
-
-init([]) ->
-    {ok, []}.
+-record(state, {socket}).
 
 %% ===================================================================
 %% API functions
 %% ===================================================================
 
+start_link() ->
+    gen_server:start_link({local, ?SERVER}, ?SERVER, [], []).
+
 start_socket() ->
-    gen_server:call(?SERVER, socket).
+    gen_server:cast(?SERVER, socket).
 
 %% ===================================================================
 %% Server callbacks
 %% ===================================================================
 
-handle_call(socket, _From, State) ->
-    Port = 5678,
-    Options = [list, {packet, line}, {active, false}, {reuseaddr, true}],
-    Reply = case gen_tcp:listen(Port, Options) of
-        {ok, ListenSocket} ->
-            io:format("Created ListenSocket ~p ~w~n", [self(), ListenSocket]),
-            proc_lib:start_link(sessionserver_socket_sup, create_acceptor, [self(), ListenSocket]);
-        OtherResult -> OtherResult
-    end,
-    {reply, Reply, State};
+init([]) ->
+    start_socket(),
+    {ok, #state{socket=null}}.
 
 handle_call(_Request, _From, State) ->
     Reply = ok,
     {reply, Reply, State}.
+
+handle_cast(socket, State) ->
+    Port = 5678,
+    Options = [list, {packet, line}, {active, false}, {reuseaddr, true}],
+    NewState = case gen_tcp:listen(Port, Options) of
+        {ok, ListenSocket} ->
+            proc_lib:start_link(sessionserver_socket_sup, create_acceptor, [self(), ListenSocket]),
+            State#state{socket=ListenSocket};
+        OtherResult ->
+            error(OtherResult)
+    end,
+    {noreply, NewState};
 
 handle_cast(_Msg, State) ->
     {noreply, State}.
@@ -60,7 +66,8 @@ handle_cast(_Msg, State) ->
 handle_info(_Info, State) ->
     {noreply, State}.
 
-terminate(_Reason, _State) ->
+terminate(_Reason, State) ->
+    gen_tcp:close(State#state.socket),
     ok.
 
 code_change(_OldVsn, State, _Extra) ->

@@ -12,7 +12,8 @@
 -behaviour(supervisor).
 
 %% API
--export([start_link/0, create_acceptor/2]).
+-export([start_link/0]).
+-export([create_acceptor/2, terminate_acceptor/1]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -34,8 +35,11 @@ start_link() ->
 
 create_acceptor(ParentPid, ListenSocket) ->
     proc_lib:init_ack(ParentPid, {ok, self()}),
-    io:format("Create acceptor ~p ~w~n", [self(), ListenSocket]),
     supervisor:start_child(?SERVER, [ListenSocket]).
+
+terminate_acceptor(ParentPid) ->
+    proc_lib:init_ack(ParentPid, {ok, self()}),
+    supervisor:terminate_child(?SERVER, ParentPid).
 
 %% ===================================================================
 %% Supervisor callbacks
