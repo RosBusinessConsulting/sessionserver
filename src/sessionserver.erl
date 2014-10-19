@@ -21,8 +21,9 @@
 -export([handle_call/3, handle_cast/2, handle_info/2]).
 
 %% Definitions
+-include_lib("sessionserver/include/sessionserver.hrl").
 -define(SERVER, ?MODULE).
--define(CRLF, [10]).
+
 
 %% ===================================================================
 %% API functions

@@ -21,8 +21,8 @@
 -export([handle_call/3, handle_cast/2, handle_info/2]).
 
 %% Definitions
+-include_lib("sessionserver/include/sessionserver.hrl").
 -define(SERVER, ?MODULE).
--define(CRLF, [10]).
 
 %% ===================================================================
 %% API functions
@@ -56,7 +56,7 @@ handle_cast({handler, Pid, ClientSocket}, State) ->
             Message = sessionserver:dispatch(Packet) ++ ?CRLF,
             gen_tcp:send(ClientSocket, Message);
         {error, Reason} ->
-            sessionserver_socket_sup:terminate_acceptor(Pid),
+            ?SOCKETSUPERVISOR:terminate_acceptor(Pid),
             error(Reason)
     end,
     gen_server:cast(Pid, {handler, Pid, ClientSocket}),
@@ -65,7 +65,7 @@ handle_cast({handler, Pid, ClientSocket}, State) ->
 handle_cast({accept, Pid, ListenSocket}, State) ->
     case gen_tcp:accept(ListenSocket) of
         {ok, ClientSocket} ->
-            proc_lib:start_link(sessionserver_socket_sup, create_acceptor, [Pid, ListenSocket]),
+            proc_lib:start_link(?SOCKETSUPERVISOR, create_acceptor, [Pid, ListenSocket]),
             handle_socket(Pid, ClientSocket),
             ok;
         {error, closed} ->

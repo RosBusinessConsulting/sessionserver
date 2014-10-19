@@ -19,12 +19,8 @@
 -export([init/1]).
 
 %% Definitions
+-include_lib("sessionserver/include/sessionserver.hrl").
 -define(SERVER, ?MODULE).
--define(MAX_RESTART, 5).
--define(MAX_TIME, 60).
-
-%% Helper macro for declaring children of supervisor
--define(CHILD(I, Type, Params), {I, {I, start_link, Params}, permanent, 5000, Type, [I]}).
 
 %% ===================================================================
 %% API functions
@@ -48,6 +44,6 @@ terminate_acceptor(ParentPid) ->
 init([]) ->
     Flags = {simple_one_for_one, ?MAX_RESTART, ?MAX_TIME},
     Spec = [
-        ?CHILD(sessionserver_socket_server, worker, [])
+        ?CHILD(sessionserver_socket_server, worker)
     ],
     {ok, {Flags, Spec}}.

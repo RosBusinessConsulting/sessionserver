@@ -2,7 +2,7 @@
 %%% @author ssobko
 %%% @copyright (C) 2014, The Profitware Group
 %%% @doc
-%%%
+%%% Main application supervisor.
 %%% @end
 %%% Created : 15.10.2014 15:53
 %%%-------------------------------------------------------------------
@@ -18,12 +18,8 @@
 -export([init/1]).
 
 %% Definitions
+-include_lib("sessionserver/include/sessionserver.hrl").
 -define(SERVER, ?MODULE).
--define(MAX_RESTART, 5).
--define(MAX_TIME, 60).
-
-%% Helper macro for declaring children of supervisor
--define(CHILD(I, Type), {I, {I, start_link, []}, permanent, 5000, Type, [I]}).
 
 %% ===================================================================
 %% API functions
@@ -40,7 +36,7 @@ init([]) ->
     Flags = {one_for_one, ?MAX_RESTART, ?MAX_TIME},
     Spec = [
         ?CHILD(sessionserver, worker),
-        ?CHILD(sessionserver_socket_sup, supervisor),
+        ?CHILD(?SOCKETSUPERVISOR, supervisor),
         ?CHILD(sessionserver_socket, worker)
     ],
     {ok, {Flags, Spec}}.

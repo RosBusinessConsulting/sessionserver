@@ -21,8 +21,8 @@
 -export([handle_call/3, handle_cast/2, handle_info/2]).
 
 %% Definitions
+-include_lib("sessionserver/include/sessionserver.hrl").
 -define(SERVER, ?MODULE).
--define(CRLF, [10]).
 
 -record(state, {socket}).
 
@@ -53,7 +53,7 @@ handle_cast(socket, State) ->
     Options = [list, {packet, line}, {active, false}, {reuseaddr, true}],
     NewState = case gen_tcp:listen(Port, Options) of
         {ok, ListenSocket} ->
-            proc_lib:start_link(sessionserver_socket_sup, create_acceptor, [self(), ListenSocket]),
+            proc_lib:start_link(?SOCKETSUPERVISOR, create_acceptor, [self(), ListenSocket]),
             State#state{socket=ListenSocket};
         OtherResult ->
             error(OtherResult)
