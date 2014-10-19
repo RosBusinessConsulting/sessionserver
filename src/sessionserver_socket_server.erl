@@ -56,7 +56,7 @@ handle_cast({handler, Pid, ClientSocket}, State) ->
             Message = sessionserver:dispatch(Packet) ++ ?CRLF,
             gen_tcp:send(ClientSocket, Message);
         {error, Reason} ->
-            ?SOCKETSUPERVISOR:terminate_acceptor(Pid),
+            proc_lib:start_link(?SOCKETSUPERVISOR, terminate_acceptor, [Pid]),
             error(Reason)
     end,
     gen_server:cast(Pid, {handler, Pid, ClientSocket}),
@@ -81,7 +81,13 @@ handle_cast(_Msg, State) ->
 handle_info(_Info, State) ->
     {noreply, State}.
 
-terminate(_Reason, _State) ->
+terminate(Reason, _State) ->
+    case Reason of
+        {{shutdown, tcp_closed}, _Params} ->
+            ?SOCKETSUPERVISOR:terminate_acceptors();
+        _Others ->
+            _Others
+    end,
     ok.
 
 code_change(_OldVsn, State, _Extra) ->

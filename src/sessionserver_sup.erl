@@ -35,9 +35,10 @@ start_link() ->
 init([]) ->
     Flags = {one_for_one, ?MAX_RESTART, ?MAX_TIME},
     Spec = [
-        ?CHILD(sessionserver, worker),
-        ?CHILD(?SOCKETSUPERVISOR, supervisor),
-        ?CHILD(sessionserver_socket, worker)
+        ?CHILD(sessionserver, worker, permanent),
+        ?CHILD(?SOCKETSUPERVISOR, supervisor, permanent),
+        ?CHILD(sessionserver_socket, worker, permanent),
+        ?CHILD(sessionserver_config, worker, permanent)
     ],
     {ok, {Flags, Spec}}.
 

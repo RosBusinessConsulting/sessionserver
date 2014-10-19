@@ -12,7 +12,7 @@
 -define(SOCKETSUPERVISOR, sessionserver_socket_sup).
 
 %% Helper macro for declaring children of supervisor
--define(CHILD(I, Type), {I, {I, start_link, []}, permanent, 5000, Type, [I]}).
+-define(CHILD(I, Type, Restart), {I, {I, start_link, []}, Restart, 5000, Type, [I]}).
 
 %% Default values for supervisors
 -define(MAX_RESTART, 5).
