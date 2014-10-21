@@ -9,3 +9,5 @@ rel/sessionserver
 .concrete/DEV_MODE
 .rebar
 .idea
+src/sessionserver_lexer.erl
+src/sessionserver_parser.erl
