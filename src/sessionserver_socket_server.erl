@@ -51,15 +51,26 @@ handle_call(_Request, _From, State) ->
 
 handle_cast({handler, Pid, ClientSocket}, State) ->
     gen_tcp:controlling_process(ClientSocket, Pid),
-    case gen_tcp:recv(ClientSocket, 0) of
+    Result = case gen_tcp:recv(ClientSocket, 0) of
         {ok, Packet} ->
-            Message = sessionserver:dispatch(Packet) ++ ?CRLF,
-            gen_tcp:send(ClientSocket, Message);
+            {Type, Message} = sessionserver:dispatch(Packet),
+            gen_tcp:send(ClientSocket, Message ++ ?CRLF),
+            case Type of
+                message ->
+                    ok;
+                close ->
+                    {error, Message}
+            end;
+        Others ->
+            Others
+    end,
+    case Result of
+        ok ->
+            gen_server:cast(Pid, {handler, Pid, ClientSocket});
         {error, Reason} ->
             proc_lib:start_link(?SOCKETSUPERVISOR, terminate_acceptor, [Pid]),
             error(Reason)
     end,
-    gen_server:cast(Pid, {handler, Pid, ClientSocket}),
     {noreply, State};
 
 handle_cast({accept, Pid, ListenSocket}, State) ->

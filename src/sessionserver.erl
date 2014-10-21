@@ -36,7 +36,8 @@ test() ->
     gen_server:call(?SERVER, test).
 
 dispatch(Packet) ->
-    gen_server:call(?SERVER, {packet, Packet}).
+    Message = gen_server:call(?SERVER, {packet, Packet}),
+    gen_server:call(?SERVER, {dispatch, Message}).
 
 %% ===================================================================
 %% Server callbacks
@@ -49,13 +50,30 @@ handle_call(test, _From, State) ->
     io:format("Got test message!~n", []),
     {reply, ok, State};
 
-handle_call({packet, "PING" ++ ?CRLF}, _From, State) ->
-    Message = "PONG",
+handle_call({packet, Packet}, _From, State) ->
+    Message = case sessionserver_lexer:string(Packet) of
+        {ok, Tokens, _EndLine} ->
+            sessionserver_parser:parse(Tokens);
+        Others ->
+            Others
+    end,
     {reply, Message, State};
 
-handle_call({packet, _Packet}, _From, State) ->
-    Message = "UNRECOGNIZED COMMAND",
-    {reply, Message, State};
+handle_call({dispatch, {ok, Statement}}, _From, State) ->
+    Reply = {message, lists:flatten(io_lib:format("~p", [Statement]))},
+    {reply, Reply, State};
+
+handle_call({dispatch, Message}, _From, State) ->
+    Error = case Message of
+                {error, ErrorTerm, _ErrorLine} ->
+                    {error, ErrorTerm};
+                {error, ErrorTerm} ->
+                    {error, ErrorTerm}
+    end,
+    {error, Reason} = Error,
+    Reply = {close, lists:flatten(io_lib:format("~p", [Reason]))},
+    {reply, Reply, State};
+
 
 handle_call(_Request, _From, State) ->
     Reply = ok,
