@@ -12,25 +12,25 @@
 
 -behaviour(gen_server).
 
--export([start_link/0, test/0, dispatch/1]).
+%% API
+-export([start_link/0]).
+-export([test/0, dispatch/1]).
 
--export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-    terminate/2, code_change/3]).
+%% Server callbacks
+-export([init/1, terminate/2, code_change/3]).
+-export([handle_call/3, handle_cast/2, handle_info/2]).
 
 %% Definitions
+-include_lib("sessionserver/include/sessionserver.hrl").
 -define(SERVER, ?MODULE).
--define(CRLF, [10]).
 
-
-start_link() ->
-    gen_server:start_link({local, ?SERVER}, ?SERVER, [], []).
-
-init([]) ->
-    {ok, []}.
 
 %% ===================================================================
 %% API functions
 %% ===================================================================
+
+start_link() ->
+    gen_server:start_link({local, ?SERVER}, ?SERVER, [], []).
 
 test() ->
     gen_server:call(?SERVER, test).
@@ -41,6 +41,9 @@ dispatch(Packet) ->
 %% ===================================================================
 %% Server callbacks
 %% ===================================================================
+
+init([]) ->
+    {ok, []}.
 
 handle_call(test, _From, State) ->
     io:format("Got test message!~n", []),

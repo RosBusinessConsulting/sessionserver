@@ -12,18 +12,15 @@
 -behaviour(supervisor).
 
 %% API
--export([start_link/0, create_acceptor/2]).
+-export([start_link/0]).
+-export([create_acceptor/2, terminate_acceptor/1, terminate_acceptors/0, terminate_all_by_childspec/1]).
 
 %% Supervisor callbacks
 -export([init/1]).
 
 %% Definitions
+-include_lib("sessionserver/include/sessionserver.hrl").
 -define(SERVER, ?MODULE).
--define(MAX_RESTART, 5).
--define(MAX_TIME, 60).
-
-%% Helper macro for declaring children of supervisor
--define(CHILD(I, Type, Params), {I, {I, start_link, Params}, permanent, 5000, Type, [I]}).
 
 %% ===================================================================
 %% API functions
@@ -34,8 +31,21 @@ start_link() ->
 
 create_acceptor(ParentPid, ListenSocket) ->
     proc_lib:init_ack(ParentPid, {ok, self()}),
-    io:format("Create acceptor ~p ~w~n", [self(), ListenSocket]),
     supervisor:start_child(?SERVER, [ListenSocket]).
+
+terminate_acceptor(ParentPid) ->
+    proc_lib:init_ack(ParentPid, {ok, self()}),
+    supervisor:terminate_child(?SERVER, ParentPid).
+
+terminate_all_by_childspec([{_Id, Pid, _Type, _Modules} | Tail]) ->
+    proc_lib:start_link(?SERVER, terminate_acceptor, [Pid]),
+    terminate_all_by_childspec(Tail);
+
+terminate_all_by_childspec([]) ->
+    ok.
+
+terminate_acceptors() ->
+    terminate_all_by_childspec(supervisor:which_children(?SERVER)).
 
 %% ===================================================================
 %% Supervisor callbacks
@@ -44,6 +54,6 @@ create_acceptor(ParentPid, ListenSocket) ->
 init([]) ->
     Flags = {simple_one_for_one, ?MAX_RESTART, ?MAX_TIME},
     Spec = [
-        ?CHILD(sessionserver_socket_bridge, worker, [])
+        ?CHILD(sessionserver_socket_server, worker, transient)
     ],
     {ok, {Flags, Spec}}.
