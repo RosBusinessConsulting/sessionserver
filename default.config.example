@@ -1,0 +1,8 @@
+[
+    %% Sessionserver configuration
+    {sessionserver, [
+        {tcp, [
+            {port, 8080}
+        ]}
+    ]}
+].

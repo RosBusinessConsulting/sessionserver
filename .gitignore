@@ -11,3 +11,4 @@ rel/sessionserver
 .idea
 src/sessionserver_lexer.erl
 src/sessionserver_parser.erl
+default.config

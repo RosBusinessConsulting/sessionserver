@@ -1,15 +1,15 @@
 %%%-------------------------------------------------------------------
 %%% @author ssobko
-%%% @copyright (C) 2014, <COMPANY>
+%%% @copyright (C) 2014, The Profitware Group
 %%% @doc
-%%%
+%%% Configuration manager
 %%% @end
-%%% Created : 19. окт 2014 17:22
+%%% Created : 19.10.2014 17:22
 %%%-------------------------------------------------------------------
 -module(sessionserver_config).
 -author("ssobko").
 
--behaviour(gen_server).
+-behaviour (gen_server).
 
 %% API
 -export([start_link/0]).
@@ -21,31 +21,61 @@
 
 %% Definitions
 -include_lib("sessionserver/include/sessionserver.hrl").
--define(SERVER, ?MODULE).
+-define (SERVER, ?MODULE).
+
+%% ===================================================================
+%% API functions
+%% ===================================================================
 
 start_link() ->
-    gen_server:start_link({local, ?SERVER}, ?SERVER, [], []).
+    gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
 
+-spec get(Group :: atom(), Key :: atom()) -> any().
 get(Group, Key) ->
     gen_server:call(?SERVER, {get, Group, Key}).
 
-init([]) ->
-    {ok, []}.
+%% ===================================================================
+%% Server callbacks
+%% ===================================================================
 
-handle_cast(_Params, State) ->
-    {noreply, State}.
+init(_Args) ->
+    {ok, state}.
 
 handle_call({get, Group, Key}, _From, State) ->
-    proplists:get_value({Group, Key}, [], []);
+    Reply = case application:get_env(sessionserver, Group) of
+        undefined ->
+            {error, nogroup, Group}; % Don't delete groups from configuration!
+        {ok, Found} ->
+            proplists:get_value(Key, Found, default(Group, Key))
+    end,
+    {reply, Reply, State};
 
-handle_call(_Params, _From, State) ->
+handle_call(_Request, _From, State) ->
     {reply, ok, State}.
 
-handle_info(_Params, State) ->
+handle_cast(_Msg, State) ->
     {noreply, State}.
 
-code_change(_OldVsn, State, _Extra) ->
+handle_info(_Info, State) ->
     {noreply, State}.
 
 terminate(_Reason, _State) ->
     ok.
+
+code_change(_OldVsn, State, _Extra) ->
+    {ok, State}.
+
+%% ===================================================================
+%% Internal functions
+%% ===================================================================
+
+-spec default(Group :: atom(), Key :: atom()) -> any().
+default(tcp, port) -> 8080;
+default(tcp, options) ->
+    [
+        list,
+        {packet, line},
+        {active, false},
+        {reuseaddr, true}
+    ];
+default(_, _) -> [].
