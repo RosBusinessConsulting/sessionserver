@@ -23,7 +23,7 @@
 -include_lib("sessionserver/include/sessionserver.hrl").
 -define(SERVER, ?MODULE).
 
--record(socketstate, {socket}).
+-record(state, {socket}).
 
 %% ===================================================================
 %% API functions
@@ -83,14 +83,14 @@ code_change(_OldVsn, State, _Extra) ->
 start_socket() ->
     gen_server:cast(?SERVER, socket).
 
--spec init_state() -> #socketstate{}.
+-spec init_state() -> #state{}.
 init_state() ->
-    #socketstate{socket=null}.
+    #state{socket = null}.
 
--spec get_state_socket(#socketstate{}) -> gen_tcp:socket().
+-spec get_state_socket(#state{}) -> gen_tcp:socket().
 get_state_socket(State) ->
-    State#socketstate.socket.
+    State#state.socket.
 
--spec set_state(#socketstate{}, gen_tcp:socket()) -> #socketstate{}.
+-spec set_state(#state{}, gen_tcp:socket()) -> #state{}.
 set_state(State, Socket) ->
-    State#socketstate{socket=Socket}.
+    State#state{socket = Socket}.

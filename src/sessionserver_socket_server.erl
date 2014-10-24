@@ -24,6 +24,8 @@
 -include_lib("sessionserver/include/sessionserver.hrl").
 -define(SERVER, ?MODULE).
 
+-record(state, {receivetimeout}).
+
 %% ===================================================================
 %% API functions
 %% ===================================================================
@@ -43,7 +45,7 @@ handle_socket(Pid, ClientSocket) ->
 
 init([ListenSocket]) ->
     accept_socket(self(), ListenSocket),
-    {ok, []}.
+    {ok, init_state()}.
 
 handle_call(_Request, _From, State) ->
     Reply = ok,
@@ -51,7 +53,7 @@ handle_call(_Request, _From, State) ->
 
 handle_cast({handler, Pid, ClientSocket}, State) ->
     gen_tcp:controlling_process(ClientSocket, Pid),
-    Result = case gen_tcp:recv(ClientSocket, 0) of
+    Result = case gen_tcp:recv(ClientSocket, 0, get_state_timeout(State)) of
         {ok, Packet} ->
             {Type, Message} = sessionserver:dispatch(Packet),
             case Type of
@@ -106,3 +108,15 @@ terminate(Reason, _State) ->
 
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
+
+%% ===================================================================
+%% Internal functions
+%% ===================================================================
+
+-spec init_state() -> #state{}.
+init_state() ->
+    #state{receivetimeout = sessionserver_config:get(tcp, timeout)}.
+
+-spec get_state_timeout(#state{}) -> timeout().
+get_state_timeout(State) ->
+    State#state.receivetimeout.

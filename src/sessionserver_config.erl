@@ -78,4 +78,5 @@ default(tcp, options) ->
         {active, false},
         {reuseaddr, true}
     ];
+default(tcp, timeout) -> 30000;
 default(_, _) -> [].
