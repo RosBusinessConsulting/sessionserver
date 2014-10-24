@@ -54,12 +54,15 @@ handle_cast({handler, Pid, ClientSocket}, State) ->
     Result = case gen_tcp:recv(ClientSocket, 0) of
         {ok, Packet} ->
             {Type, Message} = sessionserver:dispatch(Packet),
-            gen_tcp:send(ClientSocket, Message ++ ?CRLF),
             case Type of
                 message ->
+                    gen_tcp:send(ClientSocket, Message ++ ?CRLF),
                     ok;
                 close ->
-                    {error, Message}
+                    gen_tcp:send(ClientSocket, Message ++ ?CRLF),
+                    {error, Message};
+                skip ->
+                    ok
             end;
         Others ->
             Others

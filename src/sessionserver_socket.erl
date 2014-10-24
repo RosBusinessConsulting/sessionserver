@@ -23,7 +23,7 @@
 -include_lib("sessionserver/include/sessionserver.hrl").
 -define(SERVER, ?MODULE).
 
--record(state, {socket}).
+-record(socketstate, {socket}).
 
 %% ===================================================================
 %% API functions
@@ -38,7 +38,7 @@ start_link() ->
 
 init([]) ->
     start_socket(),
-    {ok, #state{socket=null}}.
+    {ok, init_state()}.
 
 handle_call(_Request, _From, State) ->
     Reply = ok,
@@ -50,7 +50,7 @@ handle_cast(socket, State) ->
     NewState = case gen_tcp:listen(Port, Options) of
         {ok, ListenSocket} ->
             proc_lib:start_link(?SOCKETSUPERVISOR, create_acceptor, [self(), ListenSocket]),
-            State#state{socket=ListenSocket};
+            set_state(State, ListenSocket);
         OtherResult ->
             error(OtherResult)
     end,
@@ -63,7 +63,7 @@ handle_info(_Info, State) ->
     {noreply, State}.
 
 terminate(_Reason, State) ->
-    Socket = State#state.socket,
+    Socket = get_state_socket(State),
     case Socket of
         null ->
             ok;
@@ -82,3 +82,15 @@ code_change(_OldVsn, State, _Extra) ->
 -spec start_socket() -> ok.
 start_socket() ->
     gen_server:cast(?SERVER, socket).
+
+-spec init_state() -> #socketstate{}.
+init_state() ->
+    #socketstate{socket=null}.
+
+-spec get_state_socket(#socketstate{}) -> gen_tcp:socket().
+get_state_socket(State) ->
+    State#socketstate.socket.
+
+-spec set_state(#socketstate{}, gen_tcp:socket()) -> #socketstate{}.
+set_state(State, Socket) ->
+    State#socketstate{socket=Socket}.

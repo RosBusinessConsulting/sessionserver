@@ -2,7 +2,7 @@
 %%% @author ssobko
 %%% @copyright (C) 2014, The Profitware Group
 %%% @doc
-%%%
+%%% Main logic for session server.
 %%% @end
 %%% Created : 15.10.2014 15:53
 %%%-------------------------------------------------------------------
@@ -14,7 +14,7 @@
 
 %% API
 -export([start_link/0]).
--export([test/0, dispatch/1]).
+-export([dispatch/1]).
 
 %% Server callbacks
 -export([init/1, terminate/2, code_change/3]).
@@ -32,9 +32,6 @@
 start_link() ->
     gen_server:start_link({local, ?SERVER}, ?SERVER, [], []).
 
-test() ->
-    gen_server:call(?SERVER, test).
-
 dispatch(Packet) ->
     Message = gen_server:call(?SERVER, {packet, Packet}),
     gen_server:call(?SERVER, {dispatch, Message}).
@@ -46,10 +43,6 @@ dispatch(Packet) ->
 init([]) ->
     {ok, []}.
 
-handle_call(test, _From, State) ->
-    io:format("Got test message!~n", []),
-    {reply, ok, State};
-
 handle_call({packet, Packet}, _From, State) ->
     Message = case sessionserver_lexer:string(Packet) of
         {ok, Tokens, _EndLine} ->
@@ -60,7 +53,7 @@ handle_call({packet, Packet}, _From, State) ->
     {reply, Message, State};
 
 handle_call({dispatch, {ok, Statement}}, _From, State) ->
-    Reply = {message, lists:flatten(io_lib:format("~p", [Statement]))},
+    Reply = execute_statement(Statement),
     {reply, Reply, State};
 
 handle_call({dispatch, Message}, _From, State) ->
@@ -70,8 +63,8 @@ handle_call({dispatch, Message}, _From, State) ->
                 {error, ErrorTerm} ->
                     {error, ErrorTerm}
     end,
-    {error, Reason} = Error,
-    Reply = {close, lists:flatten(io_lib:format("~p", [Reason]))},
+    {error, _Reason} = Error,
+    Reply = {close, get_string({error, unknown})},
     {reply, Reply, State};
 
 
@@ -90,3 +83,43 @@ terminate(_Reason, _State) ->
 
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
+
+%% ===================================================================
+%% Internal functions
+%% ===================================================================
+
+get_string({ok, {create, Password, Session, Groups, Login}}) ->
+    "OK All ok" ++ ?CRLF ++
+    "password=" ++ Password ++  ?CRLF ++
+    "session_id=" ++ Session ++  ?CRLF ++
+    "groups=" ++ Groups ++  ?CRLF ++
+    "login=" ++ Login;
+
+get_string({ok, {delete, Session, Login}}) ->
+    "OK All ok" ++  ?CRLF ++
+    "session_id=" ++ Session ++ ?CRLF ++
+    "login=" ++ Login;
+
+get_string({error, {create_login, Login}}) ->
+    "ERROR No user with login'" ++ Login ++ "'";
+
+get_string({error, create_password}) ->
+    "ERROR Invalid password";
+
+get_string({error, check}) ->
+    "ERROR No such session";
+
+get_string({error, unknown}) ->
+    "ERROR Unknown command".
+
+execute_statement({version, _Version}) ->
+    {skip, ok};
+
+execute_statement({create, Login, Password}) ->
+    {close, get_string({ok, {create, atom_to_list(Password), "SESSION", "GROUPS", atom_to_list(Login)}})};
+
+execute_statement({delete, Session}) ->
+    {close, get_string({ok, {delete, atom_to_list(Session), "LOGIN"}})};
+
+execute_statement({check, _Session}) ->
+    {close, get_string({error, check})}.
