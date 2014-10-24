@@ -23,7 +23,7 @@
 -include_lib("sessionserver/include/sessionserver.hrl").
 -define(SERVER, ?MODULE).
 
--record(state, {socket}).
+-record(state, {socket, port, options}).
 
 %% ===================================================================
 %% API functions
@@ -45,12 +45,12 @@ handle_call(_Request, _From, State) ->
     {reply, Reply, State}.
 
 handle_cast(socket, State) ->
-    Port = sessionserver_config:get(tcp, port),
-    Options = sessionserver_config:get(tcp, options),
+    Port = get_state_port(State),
+    Options = get_state_options(State),
     NewState = case gen_tcp:listen(Port, Options) of
         {ok, ListenSocket} ->
             proc_lib:start_link(?SOCKETSUPERVISOR, create_acceptor, [self(), ListenSocket]),
-            set_state(State, ListenSocket);
+            set_state_socket(State, ListenSocket);
         OtherResult ->
             error(OtherResult)
     end,
@@ -85,12 +85,24 @@ start_socket() ->
 
 -spec init_state() -> #state{}.
 init_state() ->
-    #state{socket = null}.
+    #state{
+        socket = null,
+        port = sessionserver_config:get(tcp, port),
+        options = sessionserver_config:get(tcp, options)
+    }.
 
 -spec get_state_socket(#state{}) -> gen_tcp:socket().
 get_state_socket(State) ->
     State#state.socket.
 
--spec set_state(#state{}, gen_tcp:socket()) -> #state{}.
-set_state(State, Socket) ->
+-spec get_state_options(#state{}) -> [gen_tcp:listen_option()].
+get_state_options(State) ->
+    State#state.options.
+
+-spec get_state_port(#state{}) -> inet:port_number().
+get_state_port(State) ->
+    State#state.port.
+
+-spec set_state_socket(#state{}, gen_tcp:socket()) -> #state{}.
+set_state_socket(State, Socket) ->
     State#state{socket = Socket}.
