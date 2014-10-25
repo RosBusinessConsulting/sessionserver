@@ -12,3 +12,4 @@ rel/sessionserver
 src/sessionserver_lexer.erl
 src/sessionserver_parser.erl
 default.config
+Mnesia*
