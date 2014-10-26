@@ -111,7 +111,10 @@ get_string({error, check}) ->
     "ERROR No such session";
 
 get_string({error, unknown}) ->
-    "ERROR Unknown command".
+    "ERROR Unknown command";
+
+get_string({error, something_wrong}) ->
+    "ERROR Something gone wrong".
 
 -spec execute_statement(term()) -> {skip, ok} | {close, string()} | {message, string()}.
 execute_statement({version, _Version}) ->
@@ -123,7 +126,14 @@ execute_statement({create, Login, Password}) ->
     {close, Reply};
 
 execute_statement({delete, Session}) ->
-    {close, get_string({ok, {delete, Session, "LOGIN"}})};
+    Reply = case sessionserver_db:check_session(Session) of
+        {ok, {Login, Password, Groups, Session}} ->
+            sessionserver_db:update_user(Login, Password, Groups, null),
+            get_string({ok, {delete, Session, Login}});
+        {error, Error} ->
+            get_string_reply({error, Error}, login)
+    end,
+    {close, Reply};
 
 execute_statement({check, Session}) ->
     User = sessionserver_db:check_session(Session),
@@ -146,5 +156,7 @@ get_string_reply(User, Login) ->
         {error, invalid_login} ->
             get_string({error, {create_login, Login}});
         {error, invalid_session} ->
-            get_string({error, check})
+            get_string({error, check});
+        _Others ->
+            get_string({error, something_wrong})
     end.

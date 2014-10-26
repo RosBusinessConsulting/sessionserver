@@ -71,7 +71,6 @@ handle_call({check_user, Login, Password}, _From, State) ->
     {reply, Reply, State};
 
 handle_call({check_session, Session}, _From, State) ->
-    io:format("Session ~w~n", [Session]),
     Fun = fun() ->
         mnesia:match_object(set_record('_', '_', '_', Session))
     end,
