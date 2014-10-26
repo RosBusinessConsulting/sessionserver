@@ -57,16 +57,14 @@ handle_call({dispatch, {ok, Statement}}, _From, State) ->
     {reply, Reply, State};
 
 handle_call({dispatch, Message}, _From, State) ->
-    Error = case Message of
-                {error, ErrorTerm, _ErrorLine} ->
-                    {error, ErrorTerm};
-                {error, ErrorTerm} ->
-                    {error, ErrorTerm}
+    {error, _Reason} = case Message of
+        {error, ErrorTerm, _ErrorLine} ->
+            {error, ErrorTerm};
+        {error, ErrorTerm} ->
+            {error, ErrorTerm}
     end,
-    {error, _Reason} = Error,
     Reply = {close, get_string({error, unknown})},
     {reply, Reply, State};
-
 
 handle_call(_Request, _From, State) ->
     Reply = ok,
@@ -88,6 +86,7 @@ code_change(_OldVsn, State, _Extra) ->
 %% Internal functions
 %% ===================================================================
 
+%% String representation
 -spec get_string(term()) -> string().
 get_string({ok, {create, Password, Session, Groups, Login}}) ->
     "OK All ok" ++ ?CRLF ++
@@ -116,30 +115,6 @@ get_string({error, unknown}) ->
 get_string({error, something_wrong}) ->
     "ERROR Something gone wrong".
 
--spec execute_statement(term()) -> {skip, ok} | {close, string()} | {message, string()}.
-execute_statement({version, _Version}) ->
-    {skip, ok};
-
-execute_statement({create, Login, Password}) ->
-    User = sessionserver_db:check_user(Login, Password),
-    Reply = get_string_reply(User, Login),
-    {close, Reply};
-
-execute_statement({delete, Session}) ->
-    Reply = case sessionserver_db:check_session(Session) of
-        {ok, {Login, Password, Groups, Session}} ->
-            sessionserver_db:update_user(Login, Password, Groups, null),
-            get_string({ok, {delete, Session, Login}});
-        {error, Error} ->
-            get_string_reply({error, Error}, login)
-    end,
-    {close, Reply};
-
-execute_statement({check, Session}) ->
-    User = sessionserver_db:check_session(Session),
-    Reply = get_string_reply(User, login),
-    {close, Reply}.
-
 -spec get_string_reply(User :: term(), Login :: atom()) -> string().
 get_string_reply(User, Login) ->
     case User of
@@ -160,3 +135,45 @@ get_string_reply(User, Login) ->
         _Others ->
             get_string({error, something_wrong})
     end.
+
+%% Use database backend to handle client input
+-spec execute_statement(term()) -> {skip, ok} | {close, string()} | {message, string()}.
+execute_statement({version, _Version}) ->
+    {skip, ok};
+
+execute_statement({create, Login, Password}) ->
+    User = case sessionserver_db:check_user(Login, Password) of
+        {ok, {Login, Password, Groups, OldSession}} ->
+            NewSession = case OldSession of
+                null ->
+                    generate_new_session();
+                OldSession ->
+                    OldSession
+            end,
+            sessionserver_db:update_user(Login, Password, Groups, NewSession),
+            {ok, {Login, Password, Groups, NewSession}};
+        Others ->
+            Others
+    end,
+    Reply = get_string_reply(User, Login),
+    {close, Reply};
+
+execute_statement({delete, Session}) ->
+    Reply = case sessionserver_db:check_session(Session) of
+        {ok, {Login, Password, Groups, Session}} ->
+            sessionserver_db:update_user(Login, Password, Groups, null),
+            get_string({ok, {delete, Session, Login}});
+        {error, Error} ->
+            get_string_reply({error, Error}, login)
+    end,
+    {close, Reply};
+
+execute_statement({check, Session}) ->
+    User = sessionserver_db:check_session(Session),
+    Reply = get_string_reply(User, login),
+    {close, Reply}.
+
+%% Session identifier generation
+-spec generate_new_session() -> atom().
+generate_new_session() ->
+    newsession. % FIXME: Here comes random
