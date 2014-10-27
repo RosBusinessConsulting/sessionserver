@@ -70,13 +70,10 @@ code_change(_OldVsn, State, _Extra) ->
 %% ===================================================================
 
 -spec default(Group :: atom(), Key :: atom()) -> any().
-default(tcp, port) -> 8080;
+default(tcp, acceptors) -> 20;
 default(tcp, options) ->
     [
-        list,
-        {packet, line},
-        {active, false},
-        {reuseaddr, true}
+        {port, 8080}
     ];
 default(tcp, timeout) -> 30000;
 default(_, _) -> [].

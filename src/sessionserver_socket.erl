@@ -23,7 +23,7 @@
 -include_lib("sessionserver/include/sessionserver.hrl").
 -define(SERVER, ?MODULE).
 
--record(state, {socket, port, options}).
+-record(state, {acceptors, options}).
 
 %% ===================================================================
 %% API functions
@@ -37,6 +37,7 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
+    init_ranch(),
     start_socket(),
     {ok, init_state()}.
 
@@ -45,16 +46,10 @@ handle_call(_Request, _From, State) ->
     {reply, Reply, State}.
 
 handle_cast(socket, State) ->
-    Port = get_state_port(State),
+    Acceptors = get_state_acceptors(State),
     Options = get_state_options(State),
-    NewState = case gen_tcp:listen(Port, Options) of
-        {ok, ListenSocket} ->
-            proc_lib:start_link(?SOCKETSUPERVISOR, create_acceptor, [self(), ListenSocket]),
-            set_state_socket(State, ListenSocket);
-        OtherResult ->
-            error(OtherResult)
-    end,
-    {noreply, NewState};
+    {ok, _} = ranch:start_listener(sessionserver, Acceptors, ranch_tcp, Options, sessionserver_protocol, []),
+    {noreply, State};
 
 handle_cast(_Msg, State) ->
     {noreply, State}.
@@ -62,14 +57,7 @@ handle_cast(_Msg, State) ->
 handle_info(_Info, State) ->
     {noreply, State}.
 
-terminate(_Reason, State) ->
-    Socket = get_state_socket(State),
-    case Socket of
-        null ->
-            ok;
-        ListenSocket ->
-            gen_tcp:close(ListenSocket)
-    end,
+terminate(_Reason, _State) ->
     ok.
 
 code_change(_OldVsn, State, _Extra) ->
@@ -79,6 +67,9 @@ code_change(_OldVsn, State, _Extra) ->
 %% Internal functions
 %% ===================================================================
 
+init_ranch() ->
+    application:start(ranch).
+
 -spec start_socket() -> ok.
 start_socket() ->
     gen_server:cast(?SERVER, socket).
@@ -86,23 +77,14 @@ start_socket() ->
 -spec init_state() -> #state{}.
 init_state() ->
     #state{
-        socket = null,
-        port = sessionserver_config:get(tcp, port),
+        acceptors = sessionserver_config:get(tcp, acceptors),
         options = sessionserver_config:get(tcp, options)
     }.
-
--spec get_state_socket(#state{}) -> gen_tcp:socket().
-get_state_socket(State) ->
-    State#state.socket.
 
 -spec get_state_options(#state{}) -> [gen_tcp:listen_option()].
 get_state_options(State) ->
     State#state.options.
 
--spec get_state_port(#state{}) -> inet:port_number().
-get_state_port(State) ->
-    State#state.port.
-
--spec set_state_socket(#state{}, gen_tcp:socket()) -> #state{}.
-set_state_socket(State, Socket) ->
-    State#state{socket = Socket}.
+-spec get_state_acceptors(#state{}) -> integer().
+get_state_acceptors(State) ->
+    State#state.acceptors.

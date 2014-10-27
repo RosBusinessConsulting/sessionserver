@@ -2,7 +2,10 @@
     %% Sessionserver configuration
     {sessionserver, [
         {tcp, [
-            {port, 8080}
+            {acceptors, 20},
+            {options, [
+                {port, 8080},
+            ]}
         ]}
     ]}
 ].

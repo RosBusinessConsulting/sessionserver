@@ -38,7 +38,6 @@ init([]) ->
         ?CHILD(sessionserver_config, worker, permanent),
         ?CHILD(sessionserver_db, worker, permanent),
         ?CHILD(sessionserver, worker, permanent),
-        ?CHILD(?SOCKETSUPERVISOR, supervisor, permanent),
         ?CHILD(sessionserver_socket, worker, permanent)
     ],
     {ok, {Flags, Spec}}.
