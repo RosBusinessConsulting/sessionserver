@@ -2,9 +2,9 @@
 %%% @author ssobko
 %%% @copyright (C) 2014, The Profitware Group
 %%% @doc
-%%%
+%%% Sessionserver Ranch protocol handler
 %%% @end
-%%% Created : 15.10.2014 15:53
+%%% Created : 28.10.2014 00:53
 %%%-------------------------------------------------------------------
 
 -module(sessionserver_protocol).
@@ -57,20 +57,19 @@ handle_call(_Request, _From, State) ->
     Reply = ok,
     {reply, Reply, State}.
 
-handle_cast({handler, Data}, State = #state{socket=Socket, transport=Transport, timeout=_Timeout}) ->
+handle_cast({handler, Data}, State = #state{socket=Socket, transport=Transport, timeout=Timeout}) ->
     Transport:setopts(Socket, [{active, once}]),
     {Type, Message} = sessionserver:dispatch(binary_to_list(Data)),
     case Type of
         message ->
             Transport:send(Socket, Message ++ ?CRLF),
-            ok;
+            {noreply, State, Timeout};
         close ->
             Transport:send(Socket, Message ++ ?CRLF),
-            error(Message);
+            {stop, normal, State};
         skip ->
-            ok
-    end,
-    {noreply, State};
+            {noreply, State, Timeout}
+    end;
 
 handle_cast(_Msg, State) ->
     {noreply, State}.

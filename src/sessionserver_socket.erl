@@ -2,7 +2,7 @@
 %%% @author ssobko
 %%% @copyright (C) 2014, The Profitware Group
 %%% @doc
-%%%
+%%% Server TCP connection initialization
 %%% @end
 %%% Created : 15.10.2014 15:53
 %%%-------------------------------------------------------------------
@@ -81,7 +81,7 @@ init_state() ->
         options = sessionserver_config:get(tcp, options)
     }.
 
--spec get_state_options(#state{}) -> [gen_tcp:listen_option()].
+-spec get_state_options(#state{}) -> [{atom(), any()} | {raw, any(), any(), any()}].
 get_state_options(State) ->
     State#state.options.
 
