@@ -36,9 +36,9 @@ init([]) ->
     Flags = {one_for_one, ?MAX_RESTART, ?MAX_TIME},
     Spec = [
         ?CHILD(sessionserver_config, worker, permanent),
+        ?CHILD(sessionserver_session, worker, permanent),
         ?CHILD(sessionserver_db, worker, permanent),
         ?CHILD(sessionserver, worker, permanent),
         ?CHILD(sessionserver_socket, worker, permanent)
     ],
     {ok, {Flags, Spec}}.
-

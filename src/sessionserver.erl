@@ -146,7 +146,7 @@ execute_statement({create, Login, Password}) ->
         {ok, {Login, Password, Groups, OldSession}} ->
             NewSession = case OldSession of
                 null ->
-                    generate_new_session();
+                    sessionserver_session:get_new_session();
                 OldSession ->
                     OldSession
             end,
@@ -172,8 +172,3 @@ execute_statement({check, Session}) ->
     User = sessionserver_db:check_session(Session),
     Reply = get_string_reply(User, login),
     {close, Reply}.
-
-%% Session identifier generation
--spec generate_new_session() -> atom().
-generate_new_session() ->
-    newsession. % FIXME: Here comes random

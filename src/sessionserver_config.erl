@@ -76,4 +76,5 @@ default(tcp, options) ->
         {port, 8080}
     ];
 default(tcp, timeout) -> 30000;
+default(session, length) -> 15;
 default(_, _) -> [].
