@@ -55,12 +55,12 @@ Every param may consist of alphanumeric and special characters.
 
 ## Getting the code
 
-The code is hosted at [GitHub](https://github.com/profitware/sessionserver/).
+The code is hosted at [GitHub](https://github.com/RosBusinessConsulting/sessionserver/).
 
 Check out the latest development version anonymously with:
 
 ```
- $ git clone git://github.com/profitware/sessionserver.git
+ $ git clone git://github.com/RosBusinessConsulting/sessionserver.git
  $ cd sessionserver
 ```
 
