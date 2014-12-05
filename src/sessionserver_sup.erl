@@ -1,6 +1,6 @@
 %%%-------------------------------------------------------------------
-%%% @author ssobko
-%%% @copyright (C) 2014, The Profitware Group
+%%% @author Sergey Sobko <ssobko@rbc.ru>
+%%% @copyright (C) 2014, RosBusinessConsulting
 %%% @doc
 %%% Main application supervisor.
 %%% @end
@@ -8,6 +8,7 @@
 %%%-------------------------------------------------------------------
 
 -module(sessionserver_sup).
+-author("ssobko").
 
 -behaviour(supervisor).
 

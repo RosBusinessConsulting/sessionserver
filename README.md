@@ -3,7 +3,7 @@ Sessionserver
 
 **Server for handling user sessions.**
 
-Author: The Profitware Group / Sergey Sobko <S.Sobko@profitware.ru>
+Author: Sergey Sobko <ssobko@rbc.ru>
 
 The code is mainly written as an exercise in Erlang during development of to be deployed Python version for 
 [RosBusinessConsulting](http://rbcholding.com/).

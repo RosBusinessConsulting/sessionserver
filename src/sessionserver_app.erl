@@ -1,13 +1,14 @@
 %%%-------------------------------------------------------------------
-%%% @author ssobko
-%%% @copyright (C) 2014, The Profitware Group
+%%% @author Sergey Sobko <ssobko@rbc.ru>
+%%% @copyright (C) 2014, RosBusinessConsulting
 %%% @doc
-%%%
+%%% Sessionserver application
 %%% @end
 %%% Created : 15.10.2014 15:53
 %%%-------------------------------------------------------------------
 
 -module(sessionserver_app).
+-author("ssobko").
 
 -behaviour(application).
 
